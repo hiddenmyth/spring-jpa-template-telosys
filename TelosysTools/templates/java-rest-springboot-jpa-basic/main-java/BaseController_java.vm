@@ -1,0 +1,116 @@
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import ${ROOT_PKG}.rest.search.util.PageableAsQueryParam;
+import ${ROOT_PKG}.rest.search.util.SearchCriteria;
+import ${ROOT_PKG}.rest.search.util.SearchDto;
+import ${ROOT_PKG}.rest.search.util.SearchSpecificationBuilder;
+import ${ROOT_PKG}.rest.services.commons.GenericService;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.SortDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class BaseController<ENTITY, DTO, ID_TYPE> {
+
+    protected final GenericService<ENTITY, DTO, ID_TYPE> service;
+    private final Class<ENTITY> entityClass;
+    private static final Logger logger = LoggerFactory.getLogger(BaseController.class);
+
+    public BaseController(GenericService<ENTITY, DTO, ID_TYPE> service, Class<ENTITY> entityClass) {
+        this.service = service;
+        this.entityClass = entityClass;
+    }
+
+    @ControllerAdvice
+    public static class GlobalExceptionHandler {
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException ex) {
+            Map<String, String> errors = new HashMap<>();
+            ex.getBindingResult().getAllErrors().forEach((error) -> {
+                String fieldName = ((FieldError) error).getField();
+                errors.put(fieldName, error.getDefaultMessage());
+            });
+            return ResponseEntity.badRequest().body(errors);
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<List<DTO>> findAll() {
+        List<DTO> list = service.findAll();
+        return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DTO> findById(@PathVariable ID_TYPE id) {
+        DTO obj = service.findById(id);
+        return obj == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(obj);
+    }
+
+    @DeleteMapping(value = "/{id}")
+    public ResponseEntity<Object> deleteById(@PathVariable ID_TYPE id) {
+        try {
+            return service.deleteById(id) ? ResponseEntity.ok(true) : ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            logger.error("DeleteById on entity {} with id '{}': {}", this.entityClass.getName(), id, e.getMessage());
+            return ResponseEntity.internalServerError().body("An error occurred during entity delete");
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Object> update(@RequestBody @Valid DTO dto, @PathVariable ID_TYPE id) {
+        try {
+            DTO updatedDTO = service.update(id, dto);
+            return updatedDTO == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(updatedDTO);
+        } catch (Exception e) {
+            logger.error("Update on entity {} with id '{}': {}", this.entityClass.getName(), id, e.getMessage());
+            return ResponseEntity.internalServerError().body("An error occurred during entity update");
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<Object> create(@RequestBody @Valid DTO dto) {
+        try {
+            DTO createdDTO = service.create(dto);
+            return createdDTO == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(createdDTO);
+        } catch (Exception e) {
+            logger.error("Create on entity {} : {}", this.entityClass.getName(), e.getMessage());
+            return ResponseEntity.internalServerError().body("An error occurred during entity create");
+        }
+    }
+
+    @PostMapping("/search")
+    @PageableAsQueryParam
+    public ResponseEntity<Page<DTO>> search(
+            @SortDefault(sort = "id") @PageableDefault(size = 20) final Pageable pageable,
+            @RequestBody SearchDto searchDto) {
+
+        SearchSpecificationBuilder<ENTITY> builder = new SearchSpecificationBuilder<>();
+        List<SearchCriteria> criteriaList = searchDto.getSearchCriteriaList();
+        if (criteriaList != null) {
+            criteriaList.forEach(x -> {
+                x.setDataOption(searchDto.getDataOption());
+                builder.with(x);
+            });
+        }
+
+        Page<ENTITY> entityPage = service.findBySearchCriteria(builder.build(), pageable);
+        Page<DTO> dtoPage = entityPage.map(service::entityToDto);
+
+        return new ResponseEntity<>(dtoPage, HttpStatus.OK);
+    }
+
+}

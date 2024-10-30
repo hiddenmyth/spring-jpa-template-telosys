@@ -1,0 +1,188 @@
+# Telosys databases configuration
+# 
+#    . id : must be unique (database identifier)
+#
+# "metadata" configuration  :
+#    . catalog          : the catalog where to search the metadata ( "!" means "null" ) 
+#    . schema           : the schema  where to search the metadata ( "!" means "null" )
+#    . tableNamePattern : the pattern used as table name filter ( ex : "%", "A%", ... ) 
+#    . tableTypes       : the types to retrieve, separated by blanks ( ex : "TABLE", "TABLE VIEW", ... ) 
+#    . tableNameExclude : the pattern used to exclude tables
+#    . tableNameInclude : the pattern used to include tables
+# 
+# NB: this a YAML file, don't forget to use QUOTES when a special character is used
+
+databases :
+
+# ============================================ 
+# H2 database identified by "h2" - H2 embedded ( ':jdbc:h2:mem:' = 'in memory' )
+  - id: h2
+    name: my H2 database
+    type: H2 
+    # JDBC connection
+    # H2 embedded file storage : jdbc:h2:[file:][<path>]<databaseName>
+    # H2 embedded in-memory    : jdbc:h2:mem:<databaseName>
+    # H2 remote file storage   : jdbc:h2:tcp://<server>[:<port>]/[<path>]<databaseName>
+    # H2 remote in-memory      : jdbc:h2:tcp://<server>[:<port>]/mem:<databaseName>
+    # H2 remote SSL : replace "tcp" by "ssl"
+    # url: jdbc:h2:mem:mydatabase;DB_CLOSE_DELAY=0
+    url: jdbc:h2:tcp://localhost/mem:mydatabase
+    driver: org.h2.Driver
+    user: sa
+    password: sa
+    # Metadata parameters
+    catalog: '!'
+    schema: '!'
+    tableNamePattern:
+    tableNameInclude:
+    tableNameExclude:
+    tableTypes:
+
+    #--- Telosys model creation 
+    # what kind of links to define in the model
+    linksManyToOne: true
+    linksOneToMany: false
+    linksManyToMany: false
+    # what kind of database information to define in the model (true for all by default)
+    # dbComment: false # table & column -> entity & attribute
+    # dbCatalog: false   # table -> entity
+    # dbSchema: false    # table -> entity
+    # dbTable: false     # table -> entity
+    # dbView: false      # table -> entity
+    # dbName: false          # column -> attribute
+    # dbType: false          # column -> attribute
+    # dbDefaultValue: false  # column -> attribute
+    
+# ============================================ 
+# PostgreSQL database identified by "pg"
+  - id: pg
+    name: PostgreSQL database 
+    type: POSTGRESQL 
+    # JDBC driver 
+    driver: org.postgresql.Driver 
+    # JDBC url: jdbc:postgresql://{HOST}:{PORT}/{DATABASE}
+    url: jdbc:postgresql://myhost:5432/mydatabase
+    user: bob
+    password: secret
+    # Metadata parameters
+    catalog: '!'
+    # schema: '!' ok to get tables but not to get columns, etc
+    schema: public
+    tableNamePattern:
+    tableNameInclude:
+    tableNameExclude:
+    tableTypes: TABLE
+    #--- Telosys model creation 
+    # what kind of links to define in the model
+    linksManyToOne: true
+    linksOneToMany: false
+    linksManyToMany: false
+    # what kind of database information to define in the model (true for all by default)
+    dbComment: false
+    dbCatalog : true
+    dbSchema : true
+    dbTable : true
+    dbView : false
+    dbName : true    
+    dbType : true    
+    dbDefaultValue: false
+
+# ============================================ 
+# Oracle database identified by "oracle"
+  - id: oracle
+    name: Oracle database
+    type: oracle 
+    # JDBC driver 
+    driver: oracle.jdbc.OracleDriver
+    # JDBC connection
+    #   url for SID:     jdbc:oracle:thin:@[HOST][:PORT]:SID     (older format)
+    #   url for SERVICE: jdbc:oracle:thin:@[HOST][:PORT]/SERVICE (newer format)
+    url: jdbc:oracle:thin:@localhost:1521/MYDBSERVICE
+    user: SCOTT
+    password: TIGER
+    # Metadata parameters
+    catalog: '!'
+    schema: MYSCHEMA
+    tableNamePattern: '%'
+    tableNameInclude:
+    tableNameExclude:
+    tableTypes: TABLE
+    #--- Telosys model creation 
+    # what kind of links to define in the model
+    linksManyToOne: true
+    linksOneToMany: false
+    linksManyToMany: false
+    # what kind of database information to define in the model (true for all by default)
+    dbComment: false
+    dbCatalog : true
+    dbSchema : true
+    dbTable : true
+    dbView : false
+    dbName : true    
+    dbType : true    
+    dbDefaultValue: false
+# ============================================ 
+# Derby database identified by "derby"
+  - id: derby
+    name: my Derby database
+    type: Derby 
+    # JDBC connection
+    driver: org.apache.derby.jdbc.ClientDriver 
+    url: jdbc:derby://localhost:1527/mydatabase;create=true
+    user: root
+    password: admin
+    schema: ROOT
+    # Metadata parameters
+    catalog:
+    schema:
+    tableNamePattern:
+    tableNameInclude:
+    tableNameExclude:
+    tableTypes:
+    #--- Telosys model creation 
+    # what kind of links to define in the model
+    linksManyToOne: true
+    linksOneToMany: false
+    linksManyToMany: false
+
+# ============================================
+# MYSQL (the JDBC Driver is in "mysql-connector-java-x.x.x-bin.jar")
+#   driver: com.mysql.jdbc.Driver 
+#   url: jdbc:mysql://localhost:3306/mydb 
+#   user: root
+#   password:
+
+# ============================================ 
+
+# ============================================ 
+# HSQL-DB 
+#   driver: org.hsqldb.jdbcDriver 
+#   url: jdbc:hsqldb:hsql://localhost:9001/mydb
+#   schema: PUBLIC
+
+# ============================================ 
+# SQLSERVER  (the JDBC Driver is in "sqljdbc.jar" )
+#   driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver" 
+#   url    = "jdbc:sqlserver://10.226.xxx.xxx" 
+#   user: demo
+#   password: demo
+#   catalog: demo
+#   schema: dbo
+
+# ============================================ 
+# ORACLE 
+# JDBC Driver jar files :
+# See https://www.oracle.com/fr/database/technologies/appdev/jdbc-downloads.html
+#   for Oracle versions 21c, 19c, 18c, and 12.2 : 
+#     . ojdbc11.jar ( JDBC 4.3 / JDK11 and JDK17 )
+#     . ojdbc10.jar ( JDBC 4.3 / JDK11 )
+#     . ojdbc8.jar  ( JDBC 4.2 / JDK8  and JDK11 ) 
+#   other old jars examples: ojdbc14.jar, ojdbc6.jar (JDK 1.6), ojdbc5.jar (JDK 1.5) 
+# schema: "HR" to use the demo database provided with Oracle XE
+#---------------- 
+#   driver: oracle.jdbc.driver.OracleDriver 
+#   url for SID:     jdbc:oracle:thin:@[HOST][:PORT]:SID     (older format)
+#   url for SERVICE: jdbc:oracle:thin:@[HOST][:PORT]/SERVICE (newer format)
+#   url example for XE: jdbc:oracle:thin:@localhost:1521/XE
+#   catalog: '!'
+#   schema: HR

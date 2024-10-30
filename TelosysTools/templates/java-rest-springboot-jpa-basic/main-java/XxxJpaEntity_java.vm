@@ -1,0 +1,126 @@
+## --------------------------------------------------
+#if ( $entity.isJoinEntity() )
+#cancel("No JPA class for join entity")
+#end
+## --------------------------------------------------
+#checkId($entity)
+#parse("include/init_var_entity.vm")
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+##                 JPA CONFIGURATION
+##---------------------------------------------------------------------------------------
+## Define the default collection type to be used (default is "java.util.List" )
+## #set($env.collectionType = "java.util.Set")
+## #set($env.collectionType = "java.util.Collection")
+## ---------------------------
+## Define if "targetEntity" must be generated in @ManyToMany or @OneToMany
+## #set($jpa.genTargetEntity = true)
+## ---------------------------
+## Define default value (true or false) for "insertable" and "updatable" in "@JoinColumn"
+## #set($jpa.joinColumnInsertable = true) 
+## #set($jpa.joinColumnUpdatable  = true)
+## ---------------------------
+## Set default FETCH-TYPE for each cardinality ( "LAZY" or "EAGER" )
+## #set($jpa.manyToOneFetchType  = "LAZY" )
+## #set($jpa.oneToOneFetchType   = "LAZY" )
+## #set($jpa.oneToManyFetchType  = "EAGER" )
+## #set($jpa.manyToManyFetchType = "EAGER" )
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+## IF ENTITY HAS A COMPOSITE PRIMARY KEY => GENERATE AN 'ID CLASS' FOR THIS PRIMARY KEY
+#if ( $entity.hasCompositePrimaryKey() )
+$generator.generate($target.entityName ,  "${jpaEntityIdClass}.java", $target.folder, "main-java/XxxJpaEntityId_java.vm" )
+#end
+
+#foreach( $import in $java.imports($entity) )
+import $import;
+#end
+// #foreach( $import in $jpa.imports($entity) )
+// import $import;
+// #end
+
+import jakarta.persistence.*;
+import ${ROOT_PKG}.persistence.listeners.${jpaListenerClass};
+import org.hibernate.annotations.UuidGenerator;
+
+/**
+ * JPA entity class for "${entity.name}"
+ *
+ * @author Telosys
+ *
+ */
+$jpa.entityAnnotations(0, $entity)
+@EntityListeners(${jpaListenerClass}.class)
+## IF ENTITY HAS A COMPOSITE PRIMARY KEY => DECLARE 'ID CLASS' FOR THIS PRIMARY KEY
+#if ( $entity.hasCompositePrimaryKey() )  
+@IdClass(${jpaEntityIdClass}.class)
+#end
+public class ${entity.name} extends BaseEntity {
+
+    
+    //--- PRIMARY KEY 
+#foreach( $attribute in $entity.keyAttributes )
+$jpa.fieldAnnotations(4, $attribute)
+    @UuidGenerator(style = UuidGenerator.Style.TIME)
+    private $attribute.formattedType(10) $attribute.name #if($attribute.hasInitialValue())= ${attribute.initialValue} #end;
+
+#end
+    //--- OTHER DATA FIELDS 
+#foreach( $attribute in $entity.nonKeyAttributes )
+$jpa.fieldAnnotations(4, $attribute)
+    private $attribute.formattedType(10) $attribute.name #if($attribute.hasInitialValue())= ${attribute.initialValue} #end;
+
+#end
+#if ( $entity.hasLinks() )	
+    //--- LINKS ( RELATIONSHIPS )
+#foreach( $link in $entity.links )
+## all annotations : Cardinality, JoinColumn(s), etc
+##--- with "insertable=false, updatable=false" if attribute already mapped
+$jpa.linkAnnotations(4, $link, $entity.attributes)
+##--- no "insertable=false, updatable=false" if already mapped
+## $jpa.linkAnnotations(4, $link)
+##--- Just @Cardinality annotation
+## $jpa.linkCardinalityAnnotation(4, $link) 
+##--- Just @JoinColumn(s) annotation(s)
+## $jpa.linkJoinAnnotation(4, $link) 
+## $jpa.linkJoinAnnotation(4, $link, $entity.attributes)
+    private ${link.formattedFieldType(10)} $link.fieldName ; 
+
+#end
+#end
+    /**
+     * Constructor
+     */
+    public ${entity.name}() {
+		super();
+    }
+    
+#foreach( $attribute in $entity.keyAttributes )
+    public void ${attribute.setter}( $attribute.type $attribute.name ) {
+        this.$attribute.name = $attribute.name ;
+    }
+    public $attribute.type ${attribute.getter}() {
+        return this.$attribute.name;
+    }
+
+#end
+#foreach( $attribute in $entity.nonKeyAttributes )
+    public void ${attribute.setter}( $attribute.type $attribute.name ) {
+        this.$attribute.name = $attribute.name ;
+    }
+    public $attribute.type ${attribute.getter}() {
+        return this.$attribute.name;
+    }
+
+#end
+#foreach( $link in $entity.selectedLinks )
+    public ${link.formattedFieldType(0)} ${link.getter}() {
+        return this.${link.formattedFieldName(0)};
+    } 
+
+#end
+	@Override
+## This function generates a 'toString' method with indentation level = 1 (1 tab)
+$java.toStringMethod($entity, 1)
+
+}

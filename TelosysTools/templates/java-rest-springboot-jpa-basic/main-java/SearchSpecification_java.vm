@@ -1,0 +1,56 @@
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import java.util.Objects;
+
+import org.springframework.data.jpa.domain.Specification;
+
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+
+public class SearchSpecification<T> implements Specification<T> {
+    /**
+    *
+    */
+    private static final long serialVersionUID = 1L;
+
+    private final SearchCriteria searchCriteria;
+
+    public SearchSpecification(final SearchCriteria searchCriteria) {
+        super();
+        this.searchCriteria = searchCriteria;
+    }
+
+    @Override
+    public Predicate toPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+        String strToSearch = searchCriteria.getValue().toString();
+
+        switch (Objects.requireNonNull(SearchOperation.getSimpleOperation(searchCriteria.getOperation()))) {
+//            case CONTAINS:
+////                if(searchCriteria.getFilterKey().equals("deptName"))
+////                {
+////                   return cb.like(cb.lower(departmentJoin(root).
+////                       <String>get(searchCriteria.getFilterKey())),
+////                       "%" + strToSearch + "%");
+////                }
+//                  return cb.like(cb.lower(root.get(searchCriteria.getFilterKey())), "%" + strToSearch + "%");
+
+            case DOES_NOT_CONTAIN:
+                return cb.notLike(cb.lower(root.get(searchCriteria.getFilterKey())), "%" + strToSearch + "%");
+
+            case EQUAL:
+                return cb.equal(root.get(searchCriteria.getFilterKey()), strToSearch);
+
+            case IN:
+                Object[] lstSearchStings = strToSearch.split(",");
+                return cb.and(root.get(searchCriteria.getFilterKey()).in(lstSearchStings));
+
+            case CONTAINS:
+            default:
+                return cb.like(root.get(searchCriteria.getFilterKey()), "%" + strToSearch + "%");
+        }
+    }
+}

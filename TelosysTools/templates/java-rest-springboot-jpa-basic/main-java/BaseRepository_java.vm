@@ -1,0 +1,15 @@
+#parse("include/java_header.vm")
+package ${target.javaPackageFromFolder(${SRC})};
+##---------------------------------------------------------------------------------------
+
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.ListCrudRepository;
+import org.springframework.data.repository.NoRepositoryBean;
+import org.springframework.data.repository.PagingAndSortingRepository;
+
+@NoRepositoryBean
+public interface BaseRepository<ENTITY, ID_TYPE> extends
+    PagingAndSortingRepository<ENTITY, ID_TYPE>,
+    ListCrudRepository<ENTITY, ID_TYPE>,
+    JpaSpecificationExecutor<ENTITY> {
+}

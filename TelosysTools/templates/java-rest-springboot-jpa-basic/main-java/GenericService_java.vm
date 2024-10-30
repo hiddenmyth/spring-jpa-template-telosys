@@ -1,0 +1,237 @@
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import java.time.LocalDateTime;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+
+import ${ROOT_PKG}.persistence.entities.BaseEntity;
+import ${ROOT_PKG}.persistence.repositories.BaseRepository;
+import ${ROOT_PKG}.rest.dto.BaseDTO;
+import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+* Abstract class for REST services <br>
+*
+* @author Telosys
+*
+* @param <ENTITY> Entity Class
+* @param <DTO> DTO Class of the Entity
+* @param <ID_TYPE> Primary ID Class Type of the Entity
+*/
+public abstract class GenericService<ENTITY, DTO, ID_TYPE> {
+
+	private static final Logger logger = LoggerFactory.getLogger(GenericService.class);
+	private final ModelMapper mapper = new ModelMapper();
+	private final BaseRepository<ENTITY, ID_TYPE> repository;
+
+	private final Class<ENTITY> entityClass;
+	private final Class<DTO> dtoClass;
+
+	/**
+	* Constructor
+	* @param entityClass
+	* @param dtoClass
+	* @param repository
+	*/
+	protected GenericService(Class<ENTITY> entityClass, Class<DTO> dtoClass, BaseRepository<ENTITY, ID_TYPE> repository) {
+		super();
+		this.entityClass = entityClass;
+		this.dtoClass = dtoClass;
+		this.repository = repository;
+	}
+
+	/**
+	* Converts DTO to JPA ENTITY
+	*
+	* @param dto
+	* @return
+	*/
+	protected ENTITY dtoToEntity(DTO dto) {
+		return mapper.map(dto, entityClass);
+	}
+
+	/**
+	* Converts JPA ENTITY to DTO
+	*
+	* @param entity
+	* @return
+	*/
+	public DTO entityToDto(ENTITY entity) {
+		return mapper.map(entity, dtoClass);
+	}
+
+	/**
+	* Converts an Optional JPA ENTITY to DTO
+	*
+	* @param optionalEntity
+	* @return the DTO or null if nothing in optional
+	*/
+	protected DTO entityToDto(Optional<ENTITY> optionalEntity) {
+		return optionalEntity.map(this::entityToDto).orElse(null);
+	}
+
+	/**
+	* Converts a collection of JPA ENTITIES to a collection of DTO
+	*
+	* @param entities
+	* @return
+	*/
+	protected List<DTO> entityListToDtoList(Iterable<ENTITY> entities) {
+		List<DTO> dtoList = new LinkedList<>();
+		if (entities != null) {
+			for (ENTITY e : entities) {
+				dtoList.add(entityToDto(e));
+			}
+		}
+		return dtoList;
+	}
+
+	/**
+	* Finds all occurrences of the entity
+	*
+	* @return
+	*/
+	public List<DTO> findAll() {
+		logger.debug("findAll()");
+		Iterable<ENTITY> all = repository.findAll();
+		return entityListToDtoList(all);
+	}
+
+	/**
+	* Finds the entity identified by the given PK
+	*
+	* @param entityId ID_TYPE of the entity
+	* @return the entity or null if not found
+	*/
+	public DTO findById(ID_TYPE entityId) {
+		logger.debug("findById({})", entityId);
+		Optional<ENTITY> optionalEntity = repository.findById(entityId);
+		return entityToDto(optionalEntity);
+	}
+
+	/**
+	* Saves the given entity with the given PK <br>
+	* "UPSERT" operation (updated if it exists or created if it does not exist)
+	*
+	* @param dto
+	*/
+	@Transactional
+	public DTO save(ID_TYPE entityId, DTO dto) {
+		logger.debug("save({}, {})", entityId, dto);
+
+		Optional<ENTITY> optionalEntity = repository.findById(entityId);
+		ENTITY entity = optionalEntity.orElseGet(() -> dtoToEntity(dto));
+
+		entity = repository.save(entity);
+		return entityToDto(entity);
+	}
+
+	/**
+	* Updates the given entity if it exists
+	* @param entityId
+	* @param dto
+	* @return DTO if updated, null if not
+	*/
+	public DTO update(ID_TYPE entityId, DTO dto) {
+		logger.debug("update({}, {})", entityId, dto);
+
+		Optional<ENTITY> optionalEntity = repository.findById(entityId);
+		if (optionalEntity.isPresent()) {
+			BaseEntity foundBaseEntity = (BaseEntity) optionalEntity.get();
+			BaseEntity baseEntity = (BaseEntity) dtoToEntity(dto);
+
+			// set properties that should not be modified
+			baseEntity.setCreatedAt(foundBaseEntity.getCreatedAt());
+			baseEntity.setCreatedBy(foundBaseEntity.getCreatedBy());
+			baseEntity.setModifiedBy("GENERIC SERVICE"); // TODO: set user here...
+			baseEntity.setModifiedAt(LocalDateTime.now());
+
+			ENTITY savedEntity = repository.save((ENTITY) baseEntity);
+			return entityToDto(savedEntity); // find and updated
+		} else {
+			return null; // not found (not updated)
+		}
+	}
+
+	/**
+	* Updates partially the given entity if it exists
+	*
+	* @param entityId
+	* @param dto
+	* @return DTO if updated, null if not
+	*/
+	@Transactional
+	public DTO partialUpdate(ID_TYPE entityId, DTO dto) {
+		logger.debug("partialUpdate({}, {})", entityId, dto);
+		Optional<ENTITY> optionalEntity = repository.findById(entityId);
+		if (optionalEntity.isPresent()) {
+			ENTITY entity = optionalEntity.get();
+			// implement here the partial update
+			// entity.setXxx(dto.getXxx());
+			// etc ...
+			entity = repository.save(entity);
+			return entityToDto(entity); // find and updated
+		} else {
+			return null; // not found (not updated)
+		}
+	}
+
+	/**
+	* Creates the given entity
+	*
+	* @param dto
+	* @return DTO created or existing one
+	*/
+	@Transactional
+	public DTO create(DTO dto) {
+		logger.debug("create({})", dto);
+
+		BaseDTO baseDTO = (BaseDTO) dto;
+		ID_TYPE id = (ID_TYPE)baseDTO.getEntityId();
+
+		if (repository.existsById(id)) {
+			return dto; // already exists, not created
+		} else {
+			((BaseDTO) dto).setCreatedAt(LocalDateTime.now());
+			((BaseDTO) dto).setCreatedBy("GENERIC SERVICE"); // TODO: set user here...
+			((BaseDTO) dto).setModifiedAt(null);
+			((BaseDTO) dto).setModifiedBy(null);
+
+			ENTITY role = repository.save(dtoToEntity(dto));
+			return entityToDto(role); // created
+		}
+	}
+
+	/**
+	* Deletes an entity by its PK
+	*
+	* @param entityId
+	* @return true if deleted, false if not found
+	*/
+	@Transactional
+	public boolean deleteById(ID_TYPE entityId) {
+		logger.debug("deleteById({})", entityId);
+		if (repository.existsById(entityId)) {
+			repository.deleteById(entityId);
+			return true; // find and deleted
+		} else {
+			return false; // not found (not deleted)
+		}
+	}
+
+	// -----------------------------------------------------------------------------------------
+	// Search by Criteria
+	// -----------------------------------------------------------------------------------------
+	public Page<ENTITY> findBySearchCriteria(Specification<ENTITY> spec, Pageable page) {
+		return repository.findAll(spec, page);
+	}
+}

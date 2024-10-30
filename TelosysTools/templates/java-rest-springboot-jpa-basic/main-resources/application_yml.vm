@@ -1,0 +1,51 @@
+# server:
+#   port: 8080
+
+#--- spring config
+spring:
+#   application:
+#     name: My basic application
+#   profiles:
+#     active: default
+#   main:
+#     banner-mode: off
+  config:
+    import: kafka.yml
+  data:
+    rest:
+      basePath: api/v1
+  datasource:
+    # Configure your datasource here :
+    driver-class-name: com.google.cloud.spanner.jdbc.JdbcDriver
+    url:  jdbc:cloudspanner:/projects/$DOLLAR${LBRACE}PROJECT_NAME$RBRACE/instances/$DOLLAR${LBRACE}DB_INSTANCE_NAME$RBRACE/databases/$DOLLAR${LBRACE}DB_NAME$RBRACE?credentials=gcp-account.json
+    # username: books
+    # password: anything
+#  hikari:
+#    schema: XXXX # with Derby schema name = user name
+  jpa:
+    # Configure JPA-Hibernate here :
+    database-platform: com.google.cloud.spanner.hibernate.SpannerDialect
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: ${ROOT_PKG}.config.CustomPhysicalNamingStrategy
+    properties:
+      hibernate:
+        dialect: com.google.cloud.spanner.hibernate.SpannerDialect
+        jdbc:
+          batch_size: 30
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+        show_sql: false
+        format_sql: true
+    show-sql: true
+#
+#--- logging config
+logging:
+  level:
+#      root: INFO
+    ${ROOT_PKG}: DEBUG
+#      ${ROOT_PKG}.persistence: DEBUG
+#      ${ROOT_PKG}.rest.controllers: DEBUG
+#      ${ROOT_PKG}.rest.services: DEBUG

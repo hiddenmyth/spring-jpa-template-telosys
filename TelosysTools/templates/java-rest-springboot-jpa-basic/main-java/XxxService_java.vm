@@ -1,0 +1,60 @@
+## --------------------------------------------------
+#if ( $entity.isJoinEntity() )
+#cancel("No SERVICE class for join entity")
+#end
+## --------------------------------------------------
+#checkId($entity)
+#parse("include/init_var_entity.vm")
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import java.util.List;
+import java.util.Optional;
+
+#foreach( $import in $java.imports($entity.keyAttributes) )
+import $import;
+#end
+
+import ${ROOT_PKG}.persistence.entities.${jpaEntityClass};
+import ${ROOT_PKG}.persistence.repositories.${repositoryClass};
+import ${ROOT_PKG}.rest.dto.${dtoClass};
+import ${ROOT_PKG}.rest.services.commons.GenericService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+#if ( $entity.hasCompositePrimaryKey() )
+import ${ROOT_PKG}.persistence.entities.${jpaEntityIdClass};
+#end
+
+/**
+ * REST service for entity "${entity.name}" <br>
+ * 
+ * This service provides all the necessary operations required by the REST controller <br>
+ * 
+ * @author Telosys
+ *
+ */
+@Service
+public class ${serviceClass} extends GenericService<${jpaEntityClass}, ${dtoClass}, $entity.keyAttribute.wrapperType> {
+
+	private static final Logger logger = LoggerFactory.getLogger(${serviceClass}.class);
+
+	private final ${repositoryClass} repository; // injected by constructor
+
+	/**
+	* Constructor (usable for Dependency Injection)
+	*
+	* @param repository the repository to be injected
+	*/
+	public ${serviceClass}(${repositoryClass} repository) {
+		super(${jpaEntityClass}.class, ${dtoClass}.class, repository);
+		this.repository = repository;
+	}
+
+
+	// -----------------------------------------------------------------------------------------
+	// Specific "finders"
+	// -----------------------------------------------------------------------------------------
+}

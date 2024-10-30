@@ -1,0 +1,52 @@
+#parse("include/init_var_entity.vm")
+#parse("include/java_header.vm")
+package ${target.javaPackageFromFolder(${SRC})};
+##---------------------------------------------------------------------------------------
+
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.SortDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import ${ROOT_PKG}.persistence.entities.${jpaEntityClass};
+import ${ROOT_PKG}.rest.dto.${dtoClass};
+import ${ROOT_PKG}.rest.search.util.PageableAsQueryParam;
+import ${ROOT_PKG}.rest.search.util.SearchDto;
+import ${ROOT_PKG}.rest.services.${serviceClass};
+
+#set( $uncapitalizedEntityName = $fn.uncapitalize($entity.name) )
+
+/**
+* REST Controller for entity "${jpaEntityClass}" <br>
+*
+* This Controller provides all the basic endpoints<br>
+*
+* @author Telosys
+*
+*/
+@RestController
+@RequestMapping("/${apiVersion}/${uncapitalizedEntityName}")
+public class ${controllerClass} extends BaseController<${jpaEntityClass}, ${dtoClass}, $entity.keyAttribute.wrapperType> {
+
+    public ${controllerClass}(${serviceClass} service) {
+        super(service, ${jpaEntityClass}.class);
+    }
+
+    /*
+    * Overrides to set the default sort id
+    */
+    @Override
+    @PostMapping("/search")
+    @PageableAsQueryParam
+    public ResponseEntity<Page<${dtoClass}>> search(
+            @SortDefault(sort = "$entity.keyAttribute.name") @PageableDefault(size = 20) final Pageable pageable,
+            @RequestBody SearchDto searchDto) {
+        return super.search(pageable, searchDto);
+    }
+}
