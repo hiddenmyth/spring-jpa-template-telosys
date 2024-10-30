@@ -1,0 +1,68 @@
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.stereotype.Service;
+
+@Service
+public class KafkaPublisher {
+
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(KafkaPublisher.class);
+
+    public KafkaPublisher(KafkaTemplate<String, String> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
+	public void publishEvent(List<EntityChange> dataChanges) {
+        for(EntityChange dataChange: dataChanges) {
+            try {
+                String topic = dataChange.getEntityType().getName();
+                String key = dataChange.getEntityKey();
+                String message = toJsonString(new KafkaMessage(dataChange));
+                kafkaTemplate.send(topic, key, message);
+                logger.debug(String.format("[KAFKA] Produced event to topic %s: key = %-10s value = %s %n", topic, key, message));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.printf("[KAFKA] %s events were produced", dataChanges.size());
+    }
+
+	public void publishEvent(EntityChange dataChange) {
+        try {
+            String topic = dataChange.getEntityType().getName();
+            String key = dataChange.getEntityKey();
+            String message = toJsonString(new KafkaMessage(dataChange));
+            kafkaTemplate.send(topic, key, message);
+            logger.debug(String.format("[KAFKA] Produced event to topic %s: key = %-10s value = %s %n", topic, key, message));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+	
+	@SuppressWarnings("finally")
+    private String toJsonString(KafkaMessage kafkaMessage) {
+		String jsonString = "";
+		ObjectMapper objectMapper = new ObjectMapper();
+		objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        try {
+            jsonString = objectMapper.writeValueAsString(kafkaMessage);
+            logger.debug(jsonString);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+        	return jsonString;
+        }
+	}
+}

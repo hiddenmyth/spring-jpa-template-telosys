@@ -1,0 +1,24 @@
+spring:
+  kafka:
+    # TODO: replace with server address and port
+    bootstrap-servers: $DOLLAR${LBRACE}KAFKA_SERVER$RBRACE
+    properties:
+      security:
+        protocol: SASL_SSL
+      sasl:
+        mechanism: PLAIN
+        jaas:
+          # TODO: replace with username and password from confluent kafka
+          config: org.apache.kafka.common.security.plain.PlainLoginModule required username='$DOLLAR${LBRACE}KAFKA_USERNAME$RBRACE' password='$DOLLAR${LBRACE}KAFKA_PASSWORD$RBRACE';
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: group_id
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "com.amerch.service.event.external"

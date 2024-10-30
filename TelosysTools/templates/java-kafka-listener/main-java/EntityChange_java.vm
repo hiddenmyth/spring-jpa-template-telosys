@@ -1,0 +1,44 @@
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import ${ROOT_PKG}.persistence.entities.BaseEntity;
+
+public class EntityChange {
+
+	private final EntityTopic entityType;
+	private final EntityEventType entityEventType;
+	private final String entityKey;
+	private final BaseEntity entityData;
+
+	@JsonCreator
+	public EntityChange(
+			@JsonProperty("entityType") EntityTopic entityType,
+			@JsonProperty("entityEventType") EntityEventType entityEventType,
+			@JsonProperty("entityKey") String entityKey,
+			@JsonProperty("entityData") BaseEntity entityData) {
+		this.entityType = entityType;
+		this.entityEventType = entityEventType;
+		this.entityKey = entityKey;
+		this.entityData = entityData;
+	}
+
+	// Getters
+	public EntityTopic getEntityType() {
+		return entityType;
+	}
+
+	public EntityEventType getEntityEventType() {
+		return entityEventType;
+	}
+
+	public String getEntityKey() {
+		return entityKey;
+	}
+
+	public BaseEntity getEntityData() {
+		return entityData;
+	}
+}

@@ -1,0 +1,52 @@
+#parse("include/json-schema-type.vm")
+{
+  #[["$id":]]#  "http://amerch.com/${entity.name}.schema.json",
+  #[["$schema"]]#: "http://json-schema.org/draft-07/schema#",
+  "title": "$fn.toLowerCase($entity.name)",
+  "type": "object",
+  "description": "Defines the attributes for the $entity.name entity.",
+  "properties": {
+    "entity": {
+      "type": "object",
+      "description": "Describes the fields for this entity object.",
+      "properties": {
+        #foreach( $attribute in $entity.attributes )"$attribute.name": {
+          "type": "#jsonSchemaType($attribute.type)"
+        }#if( $foreach.hasNext ),#end
+
+        #end
+      },
+
+      #set( $first = true )
+
+      "required": [#foreach( $attribute in $entity.attributes )#if( $attribute.notNull )#if( $first )#set( $first = false )#else, #end"$attribute.name"#end#end]
+    },
+    "event": {
+      "description": "Tells Consumers what happened to the entity object.",
+      "type": "object",
+      "properties": {
+        "author": {
+          "description": "The user or system that caused this event.",
+          "type": "string"
+        },
+        "id": {
+          "description": "The unique ID of this event.",
+          "type": "number"
+        },
+        "timestamp": {
+          "description": "When this event occurred, in ISO 8601 format.",
+          "type": "string"
+        },
+        "type": {
+          "description": "The type of this event.",
+          "type": "string",
+          "enum": [
+            "created",
+            "updated",
+            "deleted"
+          ]
+        }
+      }
+    }
+  }
+}

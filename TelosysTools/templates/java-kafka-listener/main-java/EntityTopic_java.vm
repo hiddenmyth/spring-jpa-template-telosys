@@ -1,0 +1,22 @@
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+public enum EntityTopic {
+	
+	#foreach( $entity in $model.allEntites )
+    $fn.toUpperCase($entity.name)  ("$fn.toLowerCase($entity.name)")#if( $foreach.hasNext ),#else;#end
+    
+    #end
+	
+	private final String name;
+	
+	EntityTopic(String name) {
+        this.name = name;
+    }
+
+	public String getName() {
+		return name;
+	}
+
+}

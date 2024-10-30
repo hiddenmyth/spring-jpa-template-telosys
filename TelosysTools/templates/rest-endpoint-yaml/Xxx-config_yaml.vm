@@ -1,0 +1,22 @@
+label: $entity.name
+provider:
+    type: RestProvider
+    parameters:
+        endpoint: '$fn.get('REST_URL_ROOT', 'http://localhost:3000')$fn.get('REST_API_ROOT', '/api/v1')/$fn.toLowerCase($entity.name)'
+fields:
+#foreach( $attribute in $entity.attributes )
+    $attribute.name:
+        label: $attribute.name
+#if( $attribute.databaseName != $attribute.name )
+        alias: $attribute.databaseName
+#end
+        type: $attribute.neutralType
+#if( $attribute.isStringType() )
+        length: $attribute.maxLength
+#end
+#if( $attribute.isKeyElement() )
+        identifying: true
+#else
+        identifying: false
+#end
+#end

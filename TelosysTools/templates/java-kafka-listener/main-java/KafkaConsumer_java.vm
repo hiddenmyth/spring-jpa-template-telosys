@@ -1,0 +1,43 @@
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Service
+public class KafkaConsumer {
+    
+    private static final Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);
+	
+    @KafkaListener(topics={
+        #foreach( $entity in $model.allEntites )
+        "$fn.toLowerCase($entity.name)"#if( $foreach.hasNext ),#else #end
+        
+        #end
+    })
+    public void listen(ConsumerRecord<String, String> record, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic) {
+        String value = record.value();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        try {
+            JsonNode root = mapper.readTree(value);
+            EntityEvent event = mapper.treeToValue(root.get("event"),EntityEvent.class);
+            String id = event.getId();
+            String eventType = event.getType();
+            logger.info(String.format("[KAFKA][MSG], id: %s event: %s \n",id, eventType));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}

@@ -1,0 +1,22 @@
+#macro( jsonSchemaType $type)
+#if( $type == "LocalDateTime" )string#end
+#if( $type == "LocalDate" )string#end
+#if( $type == "Date" )string#end
+#if( $type == "Instant" )string#end
+#if( $type == "LocalDateTime" )string#end
+#if( $type == "Timestamp" )string#end
+#if( $type == "timestamp" )string#end
+#if( $type == "int" )integer#end
+#if( $type == "Integer" )integer#end
+#if( $type == "long" )integer#end
+#if( $type == "Long" )integer#end
+#if( $type == "String" )string#end
+#if( $type == "Boolean" )boolean#end
+#if( $type == "List" )array#end
+#if( $type == "Set" )array#end
+#if( $type == "Object" )any#end
+#if( $type == "BigDecimal" )number#end
+#if( $type == "Double" )number#end
+#if( $type == "Float" )number#end
+#if( $type == "byte" )boolean#end
+#end

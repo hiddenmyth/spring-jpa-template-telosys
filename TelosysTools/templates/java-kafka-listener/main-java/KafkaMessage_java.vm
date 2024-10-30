@@ -1,0 +1,35 @@
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
+import ${ROOT_PKG}.persistence.entities.BaseEntity;
+
+@Getter
+@Setter  // Add setter support for Jackson deserialization
+public class KafkaMessage {
+
+	private BaseEntity entity;  // Remove final
+	private EntityEvent event;  // Remove final
+
+	// No-args constructor for deserialization
+	public KafkaMessage() {
+	}
+
+	// Constructor using EntityChange
+	public KafkaMessage(EntityChange dataChange) {
+		this.entity = dataChange.getEntityData();
+		String id = dataChange.getEntityKey();
+		String type = dataChange.getEntityEventType().getName();
+		String author = dataChange.getEntityData().getModifiedBy();
+		LocalDateTime timestamp = dataChange.getEntityData().getModifiedAt();
+		this.event = new EntityEvent(id, type, author, timestamp);
+	}
+
+	@Override
+	public String toString() {
+		return "KafkaMessage [entityData=" + entity + ", entityEvent=" + event + "]";
+	}
+}

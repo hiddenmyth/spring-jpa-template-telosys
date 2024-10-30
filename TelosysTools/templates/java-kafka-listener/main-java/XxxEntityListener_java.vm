@@ -1,0 +1,66 @@
+## --------------------------------------------------
+#if ( $entity.isJoinEntity() )
+#cancel("No repository class for join entity")
+#end
+## --------------------------------------------------
+#checkId($entity)
+#parse("include/init_var_entity.vm")
+#parse("include/java_header.vm")
+##---------------------------------------------------------------------------------------
+package ${target.javaPackageFromFolder(${SRC})};
+
+import jakarta.persistence.PostPersist;
+import jakarta.persistence.PostRemove;
+import jakarta.persistence.PostUpdate;
+
+import ${ROOT_PKG}.persistence.entities.${jpaEntityClass};
+// #if ( $entity.hasCompositePrimaryKey() )
+// import ${ROOT_PKG}.persistence.entities.${jpaEntityIdClass};
+// #else
+#foreach( $import in $java.imports($entity.keyAttributes) )
+import $import;
+#end
+#end
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ${ROOT_PKG}.event.EntityChange;
+import ${ROOT_PKG}.event.EntityEventType;
+import ${ROOT_PKG}.event.EntityTopic;
+import ${ROOT_PKG}.event.KafkaPublisher;
+
+public class ${jpaListenerClass} {
+	private static final Logger logger = LoggerFactory.getLogger(${jpaListenerClass}.class);
+	
+	private final KafkaPublisher kafkaPublisher;
+
+	public ${jpaListenerClass}(KafkaPublisher publisher) {
+		this.kafkaPublisher = publisher;
+	}
+	
+	@PostPersist
+	public void postPersist(${jpaEntityClass} item) {
+	    logger.debug(String.format("Entity has been created: %s", item));
+	    EntityChange dataChange = new EntityChange(EntityTopic.${fn.toUpperCase($jpaEntityClass)}, EntityEventType.CREATED, 
+				#foreach( $attribute in $entity.keyAttributes )String.valueOf(item.${attribute.getter}()) #if( $foreach.hasNext )+ "-" +#end#end, item);
+        kafkaPublisher.publishEvent(dataChange);
+	}
+	
+	@PostUpdate
+	public void postUpdate(${jpaEntityClass} item) {
+	    logger.debug(String.format("Entity has been updated: %s", item));
+	    EntityChange dataChange = new EntityChange(EntityTopic.${fn.toUpperCase($jpaEntityClass)}, EntityEventType.UPDATED, 
+				#foreach( $attribute in $entity.keyAttributes )String.valueOf(item.${attribute.getter}()) #if( $foreach.hasNext )+ "-" +#end#end, item);
+		kafkaPublisher.publishEvent(dataChange);
+	}
+	
+	@PostRemove
+	public void postRemove(${jpaEntityClass} item) {
+	    logger.debug(String.format("Entity has been deleted: %s", item));
+	    EntityChange dataChange = new EntityChange(EntityTopic.${fn.toUpperCase($jpaEntityClass)}, EntityEventType.DELETED, 
+				#foreach( $attribute in $entity.keyAttributes )String.valueOf(item.${attribute.getter}()) #if( $foreach.hasNext )+ "-" +#end#end, item);
+        kafkaPublisher.publishEvent(dataChange);
+	}
+	
+}
